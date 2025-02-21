@@ -18,7 +18,11 @@ import random
 class Agent:
     agentType = "normalUsage"  # lowUsage, normalUsage, highUsage
     typeOfUsing = "industrial" # agricultural, industrial, municipal
+<<<<<<< HEAD
     def __init__(self, agentType, typeOfUsing, condition):
+=======
+    def __init__(self, agentType, typeOfUsing):
+>>>>>>> 7e5edf9 (Initial commit)
         self.agentType = agentType
         self.typeOfUsing = typeOfUsing
 
