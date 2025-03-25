@@ -1,20 +1,21 @@
 # ino A
 """
-    1. defining a class for usres
-        1.1. attributes
-        1.2. agents functions
-        1.3. rules
-    2. defining a class for water resources
-    3. Test Scenarios
+    1. defining some classes for
+        1.1. PMT social theory
+        1.2. SCT social theory
+        1.3. agents
+        1.4. water resource (API)
+        1.5. quality
+    2. Test Scenarios
         3.1. define scenarios
         3.2. test scenario
 """
 
 import random
-
+import draw as draw
 
 # 1. defining a class for usres
-# 1.1. agents class
+# 1.1. PMT social theory
 
 class PMTSubSocialParameters:
     welfare = random.random() # variable
@@ -48,6 +49,7 @@ class PMTSocialParameters:
             self.preceivedBehavioralControl = sumPreceivedBehavioralControl/len(pmtSubSocialParams)
             self.pmtSocialFactor = (self.attitude + self.subjectiveNorm + self.preceivedBehavioralControl) / 3
 
+# 1.2. SCT social theory
 class SCTSocialParameters:
         performanceAccomplishment = 0.0
         emotionalArousal = 0.0
@@ -59,7 +61,7 @@ class SCTSocialParameters:
         persistence = 0.0
         
         
-
+# 1.3. Agents
 class Agent:
     agentType = 1  # 1: proactive, 2: interactive, 3: bounded rational, 4: preceptive
     typeOfUsing = 1 # 1: agricultural, 2: industrial, 3: municipal
@@ -77,7 +79,7 @@ class Agent:
         # calculate final decision
         print(12.)
 
-# 1.2. agents functions
+# 1.3.1. agents functions
 
 def makeAPopulation(n):
     """
@@ -101,8 +103,8 @@ def makeAPopulation(n):
 
 
 
-# 3. Environment
-# 3.1. Define the environment
+# 1.4. water resource (API)
+# 1.4.1. Define the water resource
 class Environment:
     def __init__(self, name, groundWaterHeight=100, groundWaterArea=100, numberOfWells=10,\
         socialCondition="Overexploited"):
