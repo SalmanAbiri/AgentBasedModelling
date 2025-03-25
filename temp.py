@@ -16,36 +16,23 @@ import random
 # 1. defining a class for usres
 # 1.1. agents class
 class Agent:
-    agentType = "normalUsage"  # lowUsage, normalUsage, highUsage
-    typeOfUsing = "industrial" # agricultural, industrial, municipal
-<<<<<<< HEAD
-    def __init__(self, agentType, typeOfUsing, condition):
-=======
+    agentType = 1  # 1: proactive, 2: interactive, 3: bounded rational, 4: preceptive
+    typeOfUsing = 1 # 1: agricultural, 2: industrial, 3: municipal
     def __init__(self, agentType, typeOfUsing):
->>>>>>> 7e5edf9 (Initial commit)
         self.agentType = agentType
         self.typeOfUsing = typeOfUsing
+    
+    def socialFactor (self):
+        return(round(random.uniform((self.agentType-1)*0.25, self.agentType*0.25), 2))
+
+    def decision(self):
+        # calculate social factor
+        socialFac = self.socialFactor()
+        # calculate economic factor
+        # calculate final decision
+        print(12.)
 
 # 1.2. agents functions
-
-
-# def updateAgents (agent):
-#     """
-#     Updates the agent's status based on its condition.
-#     Parameters:
-#     agent (Agent): The agent with all its attributes.
-#     Returns:
-#     Agent: The agent, potentially with a new type.
-#     """
-#     if agent.agentType == "lowUsage" and agent.condition != "conservation":
-#         agent.agentType = "normalUsage"
-#     if agent.agentType == "normal" and agent.condition == "intensive":
-#         agent.agentType = "highUsage"
-#     if agent.agentType == "normal" and agent.condition == "conservation":
-#         agent.agentType = "lowUsage"
-#     if agent.agentType == "highUsage" and agent.condition != "intensive":
-#         agent.agentType = "normalUsage"
-#         return agent
 
 def makeAPopulation(n):
     """
@@ -55,31 +42,82 @@ def makeAPopulation(n):
     Returns:
     list: A list of agents, each with random attributes.
     """
-    agentTypes = ["lowUsage", "normalUsage", "highUsage"]
-    typesOfUsing = ["agricultural", "industrial", "municipal"]
+    agentTypes = [ 1, 2, 3, 4]
+    typesOfUsing = [1, 2, 3]
 
     agents = []
     for _ in range(n):
-        agentType = random.choice(agentTypes)
-        typeOfUsing = random.choice(typesOfUsing)
+        agentType = random.randint(1, 4)
+        typeOfUsing = random.randint(1, 3)
         agent = Agent(agentType, typeOfUsing)
         agents.append(agent)
 
     return agents
 
 
-# 3. Scenarios
-# 3.1. define scenario
-class Scenario:
-    def __init__(self, name, effectOnLowUsage, effectOnNormalUsage, effectOnHighUsage):
-        self.name = name
-        self.effectOnLowUsage = effectOnLowUsage
-        self.effectOnNormalUsage = effectOnNormalUsage
-        self.effectOnHighUsage = effectOnHighUsage
 
-# 3.1. test scenario
-# 3.1.1. implementing scenario on the environment and agents
-def applyScenarioToAgent(scenario,agent):
+# 3. Environment
+# 3.1. Define the environment
+class Environment:
+    def __init__(self, name, groundWaterHeight=100, groundWaterArea=100, numberOfWells=10,\
+        socialCondition="Overexploited"):
+        self.name = name
+        self.groundWaterHeight = groundWaterHeight # meter
+        self.groundWaterArea = groundWaterArea     # squared kilo meter
+        self.numberOfWells = numberOfWells
+        self.wellsCoordinates = []                 # id, x, y
+        self.socialCondition = socialCondition     # Overexploited, Sustainable, Conserved
+        self.effectOnType1 = None
+        self.effectOnType2 = None
+        self.effectOnType3 = None
+
+    def set_well_coordinates(self, coordinates):
+        """Sets coordinates for all wells."""
+        self.wellsCoordinates = coordinates
+
+    def add_well(self, well_id, x, y):
+        """Add a single well's coordinates."""
+        self.wellsCoordinates.append({"id": well_id, "x": x, "y": y})
+
+    def set_effects(self, effectOnType1, effectOnType2, effectOnType3):
+        """Set the effects of groundwater usage on different user types."""
+        self.effectOnType1 = effectOnType1
+        self.effectOnType2 = effectOnType2
+        self.effectOnType3 = effectOnType3
+
+    def update_social_condition(self, new_condition):
+        """Update the social condition based on usage patterns."""
+        self.socialCondition = new_condition
+
+    def display_environment(self):
+        """Display information about the environment."""
+        print(f"Environment: {self.name}")
+        print(f"Groundwater Height: {self.groundWaterHeight} meters")
+        print(f"Groundwater Area: {self.groundWaterArea} square kilometers")
+        print(f"Number of Wells: {self.numberOfWells}")
+        print(f"Social Condition: {self.socialCondition}")
+        print(f"Wells Coordinates: {self.wellsCoordinates}")
+        print(f"Effect on Type1: {self.effectOnType1}")
+        print(f"Effect on Type2: {self.effectOnType2}")
+        print(f"Effect on Excessive Users: {self.effectOnType3}")
+
+    def __str__(self):
+        return (f"Environment {self.name}: {self.socialCondition} - {self.groundWaterHeight}\
+            meters groundwater, "
+                f"{self.numberOfWells} wells.")
+
+# 4. Scenarios
+# 4.1. define scenario
+class Scenario:
+    def __init__(self, name, effectOnType1, effectOnType2, effectOnType3):
+        self.name = name
+        self.effectOnType1 = effectOnType1
+        self.effectOnType2 = effectOnType2
+        self.effectOnType3 = effectOnType3
+
+# 4.2. test scenario
+# 4.2.1. implementing scenario on the environment and agents
+def applyScenarioToAgent(scenario,agent, environment):
     """
     Updates the agent's status based on its condition.
     Parameters:
@@ -87,25 +125,37 @@ def applyScenarioToAgent(scenario,agent):
     Returns:
     Agent: The agent, potentially with a new type.
     """
+    # check environmental status
+    socialCondition = calculateSocialCondition(agents)
+    scenario.effectOnType1 = max(min(scenario.effectOnType1+socialCondition, 1),-1)
+    scenario.effectOnType2 = max(min(scenario.effectOnType2+socialCondition, 1),-1)
+    scenario.type3 = max(min(scenario.type3+socialCondition, 1),-1)
 
-    if agent.agentType == "lowUsage" and agent.condition != "conservation":
-        agent.agentType = "normalUsage"
+    if agent.agentType == 1 and scenario.effectOnType1 == +1:
+        agent.agentType = 2
 
-    if agent.agentType == "normal" and agent.condition == "intensive":
-        agent.agentType = "highUsage"
-    if agent.agentType == "normal" and agent.condition == "conservation":
-        agent.agentType = "lowUsage"
+    if agent.agentType == 2 and scenario.effectOnType2 == -1:
+        agent.agentType = 1
+    if agent.agentType == 2 and scenario.effectOnType2 == +1:
+        agent.agentType = 3
 
-    if agent.agentType == "highUsage" and agent.condition != "intensive":
-        agent.agentType = "normalUsage"
+    if agent.agentType == 3 and scenario.type3 == -1:
+        agent.agentType = 2
 
-        return agent
+    return agent
 
-# 3.1.1. Scenario 1
-# This scenario changes 50% of normal municipal users to low usage.
-# Additionally, if the environment prioritizes conservation, 25% of high usage
-# municipal users will shift to normal usage.
+def calculateSocialCondition(agents):
+    summation = 0
+    for agent in agents:
+        if agent.agentType == 1:
+            summation = summation-1
+        if agent.agentType == 2:
+            summation = summation+1
+    average = summation/len(agents)
+    rounded_average = round(average)  # Round to nearest whole number
+    return rounded_average
+
 scenario1 = Scenario("encouragement", 1, 1, 0.5)
 
 agents = makeAPopulation(10)
-
+print(123)
