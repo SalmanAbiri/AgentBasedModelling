@@ -65,10 +65,20 @@ class SCTSocialParameters:
 class Agent:
     agentType = 1  # 1: proactive, 2: interactive, 3: bounded rational, 4: preceptive
     typeOfUsing = 1 # 1: agricultural, 2: industrial, 3: municipal
-    def __init__(self, agentType, typeOfUsing):
-        self.agentType = agentType
-        self.typeOfUsing = typeOfUsing
+    farmlandCoordinates = [(100, 100), (200, 100), (200, 200), (100, 200)]
+    shape = draw.Shape()
+    def __init__(self, agentType = None, typeOfUsing = None, farmlandCoordinates = None):
+        if agentType != None:
+            self.agentType = agentType
+        if typeOfUsing != None:
+            self.typeOfUsing = typeOfUsing
+        if farmlandCoordinates != None:
+            self.shape = draw.Shape(farmlandCoordinates)
     
+    @staticmethod
+    def create():
+        obj = Agent()
+        return obj
     def socialFactor (self):
         return(round(random.uniform((self.agentType-1)*0.25, self.agentType*0.25), 2))
 
@@ -77,10 +87,14 @@ class Agent:
         socialFac = self.socialFactor()
         # calculate economic factor
         # calculate final decision
-        print(12.)
 
 # 1.3.1. agents functions
-
+def drawAllFarmlands(agents):
+    shapes = [draw.Shape.create() for _ in range(len(agents))]
+    for i in range(len(agents)):
+        shapes[i].coordinates = agents[i].farmlandCoordinates
+        shapes[i].color = agents[i].shape.color
+    draw.draw_agents(shapes)
 def makeAPopulation(n):
     """
     Generates a specified number of agents with random attributes.
@@ -96,7 +110,7 @@ def makeAPopulation(n):
     for _ in range(n):
         agentType = random.randint(1, 4)
         typeOfUsing = random.randint(1, 3)
-        agent = Agent(agentType, typeOfUsing)
+        agent = Agent(agentType, typeOfUsing,[(100, 100), (200, 100), (200, 200), (100, 200)])
         agents.append(agent)
 
     return agents
@@ -206,7 +220,34 @@ def calculateSocialCondition(agents):
     rounded_average = round(average)  # Round to nearest whole number
     return rounded_average
 
-scenario1 = Scenario("encouragement", 1, 1, 0.5, 1)
 
-agents = makeAPopulation(10)
-print(123)
+if __name__ == "__main__":
+    scenario1 = Scenario("encouragement", 1, 1, 0.5, 1)
+    agents = makeAPopulation(10)
+    #shape = draw.Shape("1", [(100, 100), (200, 100), (200, 200), (100, 200)])
+    #shape.draw_closed_shape(color=(255, 0, 0))
+
+    # Agent 1
+    #agent1 = Agent(1, 1, [(100, 100), (200, 100), (200, 200), (100, 200)])
+    #agent1.shape.draw_closed_shape()
+
+    # agents array
+    agents = [Agent.create() for _ in range(4)]
+    bSquare = 100
+    xStart = 10
+    yStart = 10
+    offset = 10
+    farmNo = 0
+    for farmNo in range(len(agents)):
+        agents[farmNo].agentType = 1
+        agents[farmNo].typeOfUsing = 1
+        x1 = farmNo*(bSquare + offset)
+        y1 = 0
+        x2 = x1 + bSquare
+        y2 = y1 + bSquare
+        agents[farmNo].farmlandCoordinates = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+        agents[farmNo].shape.color = (255, 0, 0)
+    
+    drawAllFarmlands(agents)
+
+    print(123)
