@@ -60,39 +60,102 @@ class SCTSocialParameters:
         performance = 0.0
         persistence = 0.0
         
-        
+
+class Crop:
+    Type = 1
+    Yield = random.uniform(0.3, 0.5)
+    sellPrice = 200
+    cultivationCost = 100
+    waterDemand = 100
+    def __init__(self):
+        self.Type = 1
+        self.Yield = random.uniform(0.3, 0.5)
+        self.sellPrice = 200
+        self.cultivationCost = 100
+    @staticmethod
+    def create():
+        obj = Crop()
+        return obj
+
+
 # 1.3. Agents
 class Agent:
     agentType = 1  # 1: proactive, 2: interactive, 3: bounded rational, 4: preceptive
     typeOfUsing = 1 # 1: agricultural, 2: industrial, 3: municipal
     farmlandCoordinates = [(100, 100), (200, 100), (200, 200), (100, 200)]
+    area = -1
     shape = draw.Shape()
+    pmtSubSocialParameters = PMTSubSocialParameters()
+    lastCrop = Crop()
+    newCrop = Crop()
     def __init__(self, agentType = None, typeOfUsing = None, farmlandCoordinates = None):
         if agentType != None:
             self.agentType = agentType
         if typeOfUsing != None:
             self.typeOfUsing = typeOfUsing
         if farmlandCoordinates != None:
-            self.shape = draw.Shape(farmlandCoordinates)
+            self.shape.coordinates = farmlandCoordinates
     
     @staticmethod
     def create():
         obj = Agent()
         return obj
-    def socialFactor (self):
-        return(round(random.uniform((self.agentType-1)*0.25, self.agentType*0.25), 2))
+    # def socialFactor (self):
+    #     return(round(random.uniform((self.agentType-1)*0.25, self.agentType*0.25), 2))
+    def ProbabilityOfLegalCompliance(self, method="PMT"): # a nubmer between 0 and 1 
+        if (method == "PMT"):
+            pmtSocialParameters = PMTSocialParameters()
+            pmtSocialParameters.calculateParameters(self.pmtSubSocialParameters)
+            return(pmtSocialParameters.pmtSocialFactor)
+        else:
+            return(0)
 
-    def decision(self):
+    def premittedCrops(self, scenario, crops):
+        premittedWaterUsage =  scenario.groundWaterPumpingLimit
+        premitArray = [False] * len(crops)
+        for i in range(len(crops)): # all of crop types
+            if (crops[i].waterDemand <= premittedWaterUsage):
+                premitArray[i] = True
+        return premitArray
+
+             
+    def ChooseNewCrop(self, probabilityOfLegalCompliance, scenario, annualInterestYear, crops):
+        newCropIndex = 0
+        premittedCrop = [True]*len(crops)
+        status = random.choices(["lawAbiding", "lawBreaker"], weights=[probabilityOfLegalCompliance, (1-probabilityOfLegalCompliance)])[0]
+        if status == "lawAbiding":
+            premittedCrop = premittedCrops(scenario, crops)
+        # last crop nb:
+        lastCost = (self.lastCrop.waterDemand + self.lastCrop.cultivationCost) * (1/self.lastCrop.Yield)
+        lastIncome = self.lastCrop.sellPrice
+        lastNb = lastIncome - lastCost
+        maxDiff = 0
+        for i in range(len(crops)): # all of crop types
+            if (premittedCrop[i]):
+                cost =  (crops[i].waterDemand + crops[i].cultivationCost) * (1/crops[i].Yield)
+                income = crops[i].sellPrice
+                nb = income - cost
+                if (maxDiff < (nb-lastNb)):
+                    newCropIndex = i
+                    maxDiff = nb - lastNb
+        
+        self.lastCrop = self.newCrop
+        self.newCrop = crops[newCropIndex]
+
+
+            
+
+    def decision(self, scenario, annualInterestYear, crops):
         # calculate social factor
-        socialFac = self.socialFactor()
-        # calculate economic factor
-        # calculate final decision
+        probabilityOfLegalCompliance = ProbabilityOfLegalCompliance("PMT")
+        # adding economic factor
+        self.ChooseNewCrop(probabilityOfLegalCompliance, scenario, annualInterestYear, crops)
 
 # 1.3.1. agents functions
 def drawAllFarmlands(agents):
     shapes = [draw.Shape.create() for _ in range(len(agents))]
     for i in range(len(agents)):
-        shapes[i].coordinates = agents[i].farmlandCoordinates
+        shapes[i].coordinates = agents[i].shape.coordinates
         shapes[i].color = agents[i].shape.color
     draw.draw_agents(shapes)
 def makeAPopulation(n):
@@ -172,13 +235,10 @@ class Environment:
 
 # 4. Scenarios
 # 4.1. define scenario
+
+
 class Scenario:
-    def __init__(self, name, effectOnType1, effectOnType2, effectOnType3, effectOnType4):
-        self.name = name
-        self.effectOnType1 = effectOnType1
-        self.effectOnType2 = effectOnType2
-        self.effectOnType3 = effectOnType3
-        self.effectOnType4 = effectOnType4
+    groundWaterPumpingLimit = 100 # usage per area
 
 # 4.2. test scenario
 # 4.2.1. implementing scenario on the environment and agents
@@ -222,7 +282,7 @@ def calculateSocialCondition(agents):
 
 
 if __name__ == "__main__":
-    scenario1 = Scenario("encouragement", 1, 1, 0.5, 1)
+    scenario1 = Scenario()
     agents = makeAPopulation(10)
     #shape = draw.Shape("1", [(100, 100), (200, 100), (200, 200), (100, 200)])
     #shape.draw_closed_shape(color=(255, 0, 0))
@@ -231,23 +291,36 @@ if __name__ == "__main__":
     #agent1 = Agent(1, 1, [(100, 100), (200, 100), (200, 200), (100, 200)])
     #agent1.shape.draw_closed_shape()
 
+    crops = [Crop.create() for _ in range(6)]
+    for i in range(6):
+        crops[i].Type = i
+        crops[i].Yield = random.uniform(0.3, 0.5)
+        crops[i].sellPrice = random.randint(100, 300)
+        crops[i].cultivationCost = crops[i].sellPrice*0.6
+        crops[i].waterDemand = random.randint(50, 250) # per area
+
     # agents array
-    agents = [Agent.create() for _ in range(4)]
+    agents = [Agent.create() for _ in range(25)]
     bSquare = 100
-    xStart = 10
-    yStart = 10
+    xStart = 0
+    yStart = 0
     offset = 10
     farmNo = 0
     for farmNo in range(len(agents)):
         agents[farmNo].agentType = 1
         agents[farmNo].typeOfUsing = 1
-        x1 = farmNo*(bSquare + offset)
-        y1 = 0
+        x1 = (farmNo%5)*(bSquare + offset)
+        y1 = round(farmNo//5)*(bSquare + offset)
         x2 = x1 + bSquare
         y2 = y1 + bSquare
-        agents[farmNo].farmlandCoordinates = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+        agents[farmNo].shape = draw.Shape()
+        agents[farmNo].shape.coordinates = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
         agents[farmNo].shape.color = (255, 0, 0)
+        agents[farmNo].shape.calculateArea()
     
+    annualInterestYear = 0.6
+
+    draw.test()
     drawAllFarmlands(agents)
 
     print(123)
