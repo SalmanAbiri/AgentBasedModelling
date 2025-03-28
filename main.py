@@ -156,6 +156,18 @@ def drawAllFarmlands(agents):
     shapes = [draw.Shape.create() for _ in range(len(agents))]
     for i in range(len(agents)):
         shapes[i].coordinates = agents[i].shape.coordinates
+        if (agents[i].newCrop.Type == 0):
+            agents[i].shape.color = (0, 0, 255)
+        elif (agents[i].newCrop.Type == 1):
+            agents[i].shape.color = (255, 0, 0)
+        elif (agents[i].newCrop.Type == 2):
+            agents[i].shape.color = (0, 255, 0)
+        elif (agents[i].newCrop.Type == 3):
+            agents[i].shape.color = (0, 255, 255)
+        elif (agents[i].newCrop.Type == 4):
+            agents[i].shape.color = (255, 255, 0)
+        else:
+            agents[i].shape.color = (255, 0, 255)
         shapes[i].color = agents[i].shape.color
     draw.draw_agents(shapes)
 def makeAPopulation(n):
@@ -317,10 +329,14 @@ if __name__ == "__main__":
         agents[farmNo].shape.coordinates = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
         agents[farmNo].shape.color = (255, 0, 0)
         agents[farmNo].shape.calculateArea()
+        agents[farmNo].newCrop = Crop()
+        cropType = random.randint(0, 5)
+        agents[farmNo].newCrop = crops[cropType]
+        agents[farmNo].lastCrop = agents[farmNo].newCrop
     
     annualInterestYear = 0.6
 
-    draw.test()
+    #draw.test()
     drawAllFarmlands(agents)
 
     print(123)

@@ -54,19 +54,41 @@ class Shape:
             area += (x1 * y2) - (y1 * x2)
 
         self.area = abs(area) / 2 
+        
+    def draw_closed_shape2(self, image, original_pts):
+        
+        # Define the target coordinates where the image should be placed
+        # x1, y1 = 100, 100
+        # x2, y2 = 200, 200
+        target_pts = np.array(self.coordinates, dtype=np.float32)
+
+        # Compute the perspective transform matrix
+        matrix = cv2.getPerspectiveTransform(original_pts, target_pts)
+
+        # Warp the image to fit the new coordinates
+        warped_image = cv2.warpPerspective(image, matrix, (500, 500))  # Adjust output size as needed
+        return (warped_image)
 
 def draw_agents(shapes):
+        # # Load the image
+        # image = cv2.imread("pics/image1.jpg")
+
+        # # Define the original image's corners (assuming it's a rectangle)
+        # h, w, _ = image.shape
+        # original_pts = np.float32([[0, 0], [w, 0], [w, h], [0, h]])  # (top-left, top-right, bottom-right, bottom-left)
+
         # Create a blank image (black background)
         width = 540
         height = 540
         img = np.zeros((width, height, 3), dtype=np.uint8)
         for shape in shapes:
             shape.draw_closed_shape(img)
+            #warped_image = shape.draw_closed_shape2(image, original_pts)
         # Show the image
         cv2.imshow("Closed Shape", img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-
+    
 def test():
     # Load the image
     image = cv2.imread("pics/image1.jpg")
@@ -90,6 +112,16 @@ def test():
     cv2.imshow("Warped Image", warped_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows() 
-# Example usage:
-# points = [(100, 100), (200, 100), (200, 200), (100, 200)]  # Points of a rectangle
-# draw_closed_shape(points, color=(255, 0, 0))  # Red color
+
+
+def draw_agents2(shapes):
+        # Create a blank image (black background)
+        width = 540
+        height = 540
+        img = np.zeros((width, height, 3), dtype=np.uint8)
+        for shape in shapes:
+            shape.draw_closed_shape2(img)
+        # Show the image
+        cv2.imshow("Closed Shape", img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
