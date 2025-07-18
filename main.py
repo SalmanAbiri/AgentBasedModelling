@@ -5,7 +5,7 @@
         1.2. SCT social theory
         1.3. agents
         1.4. water resource (API)
-        1.5. quality
+        1.5. water quality
     2. Test Scenarios
         3.1. define scenarios
         3.2. test scenario
