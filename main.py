@@ -11,8 +11,11 @@
         3.2. test scenario
 """
 
+
 import random
 import draw as draw
+import pandas as pd
+
 
 # 1. defining a class for usres
 # 1.1. PMT social theory
@@ -61,95 +64,97 @@ class SCTSocialParameters:
         persistence = 0.0
         
 
+
 class Crop:
-    Type = 1
-    Yield = random.uniform(0.3, 0.5)
-    sellPrice = 200
-    cultivationCost = 100
-    waterDemand = 100
-    def __init__(self):
-        self.Type = 1
-        self.Yield = random.uniform(0.3, 0.5)
-        self.sellPrice = 200
-        self.cultivationCost = 100
+    def __init__(self, Type=1, Yield=None, sellPrice=200, cultivationCost=100, waterDemand=100):
+        self.Type = Type
+        self.Yield = Yield if Yield is not None else random.uniform(0.3, 0.5)
+        self.sellPrice = sellPrice
+        self.cultivationCost = cultivationCost
+        self.waterDemand = waterDemand
+
     @staticmethod
-    def create():
-        obj = Crop()
-        return obj
+    def create_from_dict(data):
+        return Crop(
+            Type=data.get('Type', 1),
+            Yield=data.get('Yield', None),
+            sellPrice=data.get('sellPrice', 200),
+            cultivationCost=data.get('cultivationCost', 100),
+            waterDemand=data.get('waterDemand', 100)
+        )
 
 
 # 1.3. Agents
 class Agent:
-    agentType = 1  # 1: proactive, 2: interactive, 3: bounded rational, 4: preceptive
-    typeOfUsing = 1 # 1: agricultural, 2: industrial, 3: municipal
-    farmlandCoordinates = [(100, 100), (200, 100), (200, 200), (100, 200)]
-    area = -1
-    shape = draw.Shape()
-    pmtSubSocialParameters = PMTSubSocialParameters()
-    lastCrop = Crop()
-    newCrop = Crop()
-    def __init__(self, agentType = None, typeOfUsing = None, farmlandCoordinates = None):
-        if agentType != None:
-            self.agentType = agentType
-        if typeOfUsing != None:
-            self.typeOfUsing = typeOfUsing
-        if farmlandCoordinates != None:
-            self.shape.coordinates = farmlandCoordinates
-    
+    def __init__(self, agentType=1, typeOfUsing=1, farmlandCoordinates=None, area=-1,
+                 lastCrop=1, newCrop=1):
+        self.agentType = agentType
+        self.typeOfUsing = typeOfUsing
+        self.farmlandCoordinates = farmlandCoordinates or [(100, 100), (200, 100), (200, 200), (100, 200)]
+        self.area = area
+        self.shape = draw.Shape()
+        self.shape.coordinates = self.farmlandCoordinates
+        self.pmtSubSocialParameters = PMTSubSocialParameters()
+        self.lastCrop = lastCrop
+        self.newCrop = newCrop
+
     @staticmethod
-    def create():
-        obj = Agent()
-        return obj
-    # def socialFactor (self):
-    #     return(round(random.uniform((self.agentType-1)*0.25, self.agentType*0.25), 2))
-    def ProbabilityOfLegalCompliance(self, method="PMT"): # a nubmer between 0 and 1 
-        if (method == "PMT"):
+    def create_from_dict(data):
+        # Safely evaluate farmlandCoordinates if stored as a string
+        coords = eval(data.get("farmlandCoordinates")) if "farmlandCoordinates" in data else None
+        return Agent(
+            agentType=data.get("agentType", 1),
+            typeOfUsing=data.get("typeOfUsing", 1),
+            farmlandCoordinates=coords,
+            area=data.get("area", -1),
+            lastCrop=data.get("lastCrop", 1),
+            newCrop=data.get("newCrop", 1)
+        )
+
+    def ProbabilityOfLegalCompliance(self, method="PMT"):
+        if method == "PMT":
             pmtSocialParameters = PMTSocialParameters()
             pmtSocialParameters.calculateParameters(self.pmtSubSocialParameters)
-            return(pmtSocialParameters.pmtSocialFactor)
+            return pmtSocialParameters.pmtSocialFactor
         else:
-            return(0)
+            return 0
 
-    def premittedCrops(self, scenario, crops):
-        premittedWaterUsage =  scenario.groundWaterPumpingLimit
-        premitArray = [False] * len(crops)
-        for i in range(len(crops)): # all of crop types
-            if (crops[i].waterDemand <= premittedWaterUsage):
-                premitArray[i] = True
-        return premitArray
+    def permittedCrops(self, scenario, crops):
+        permittedWaterUsage = scenario.groundWaterPumpingLimit
+        return [crop.waterDemand <= permittedWaterUsage for crop in crops]
 
-             
     def ChooseNewCrop(self, probabilityOfLegalCompliance, scenario, annualInterestYear, crops):
-        newCropIndex = 0
-        premittedCrop = [True]*len(crops)
-        status = random.choices(["lawAbiding", "lawBreaker"], weights=[probabilityOfLegalCompliance, (1-probabilityOfLegalCompliance)])[0]
+        status = random.choices(
+            ["lawAbiding", "lawBreaker"],
+            weights=[probabilityOfLegalCompliance, 1 - probabilityOfLegalCompliance]
+        )[0]
+
+        permittedCrop = [True] * len(crops)
         if status == "lawAbiding":
-            premittedCrop = premittedCrops(scenario, crops)
-        # last crop nb:
-        lastCost = (self.lastCrop.waterDemand + self.lastCrop.cultivationCost) * (1/self.lastCrop.Yield)
+            permittedCrop = self.permittedCrops(scenario, crops)
+
+        # Compare net benefits
+        lastCost = (self.lastCrop.waterDemand + self.lastCrop.cultivationCost) * (1 / self.lastCrop.Yield)
         lastIncome = self.lastCrop.sellPrice
         lastNb = lastIncome - lastCost
-        maxDiff = 0
-        for i in range(len(crops)): # all of crop types
-            if (premittedCrop[i]):
-                cost =  (crops[i].waterDemand + crops[i].cultivationCost) * (1/crops[i].Yield)
-                income = crops[i].sellPrice
+
+        maxDiff = float('-inf')
+        newCropIndex = 0
+        for i, crop in enumerate(crops):
+            if permittedCrop[i]:
+                cost = (crop.waterDemand + crop.cultivationCost) * (1 / crop.Yield)
+                income = crop.sellPrice
                 nb = income - cost
-                if (maxDiff < (nb-lastNb)):
+                if nb - lastNb > maxDiff:
                     newCropIndex = i
                     maxDiff = nb - lastNb
-        
+
         self.lastCrop = self.newCrop
         self.newCrop = crops[newCropIndex]
 
-
-            
-
     def decision(self, scenario, annualInterestYear, crops):
-        # calculate social factor
-        probabilityOfLegalCompliance = ProbabilityOfLegalCompliance("PMT")
-        # adding economic factor
-        self.ChooseNewCrop(probabilityOfLegalCompliance, scenario, annualInterestYear, crops)
+        compliance = self.ProbabilityOfLegalCompliance("PMT")
+        self.ChooseNewCrop(compliance, scenario, annualInterestYear, crops)
 
 # 1.3.1. agents functions
 def drawAllFarmlands(agents):
@@ -303,36 +308,42 @@ if __name__ == "__main__":
     #agent1 = Agent(1, 1, [(100, 100), (200, 100), (200, 200), (100, 200)])
     #agent1.shape.draw_closed_shape()
 
-    crops = [Crop.create() for _ in range(6)]
-    for i in range(6):
-        crops[i].Type = i
-        crops[i].Yield = random.uniform(0.3, 0.5)
-        crops[i].sellPrice = random.randint(100, 300)
-        crops[i].cultivationCost = crops[i].sellPrice*0.6
-        crops[i].waterDemand = random.randint(50, 250) # per area
+    # Read the Excel file
+    data = pd.read_excel("inputs.xlsx", sheet_name=["crops", "agents"])
 
-    # agents array
-    agents = [Agent.create() for _ in range(25)]
+    # Create Crop objects
+    crop_df = data["crops"]
+    crops = [Crop.create_from_dict(row._asdict()) for row in crop_df.itertuples(index=False)]
+
+    # Example: print all crops
+    for crop in crops:
+        print(vars(crop))
+
+    # Agent objects
+    agent_df = data["agents"]
+    agents = [Agent.create_from_dict(row._asdict()) for row in agent_df.itertuples(index=False)]
+
+
     bSquare = 100
     xStart = 0
     yStart = 0
     offset = 10
     farmNo = 0
     for farmNo in range(len(agents)):
-        agents[farmNo].agentType = 1
-        agents[farmNo].typeOfUsing = 1
-        x1 = (farmNo%5)*(bSquare + offset)
-        y1 = round(farmNo//5)*(bSquare + offset)
-        x2 = x1 + bSquare
-        y2 = y1 + bSquare
+        # agents[farmNo].agentType = 1
+        # agents[farmNo].typeOfUsing = 1
+        # x1 = (farmNo%5)*(bSquare + offset)
+        # y1 = round(farmNo//5)*(bSquare + offset)
+        # x2 = x1 + bSquare
+        # y2 = y1 + bSquare
+        # agents[farmNo].shape.coordinates = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+        # agents[farmNo].newCrop = Crop()
+        # cropType = random.randint(0, 5)
+        # agents[farmNo].newCrop = crops[cropType]
+        # agents[farmNo].lastCrop = agents[farmNo].newCrop
         agents[farmNo].shape = draw.Shape()
-        agents[farmNo].shape.coordinates = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
         agents[farmNo].shape.color = (255, 0, 0)
         agents[farmNo].shape.calculateArea()
-        agents[farmNo].newCrop = Crop()
-        cropType = random.randint(0, 5)
-        agents[farmNo].newCrop = crops[cropType]
-        agents[farmNo].lastCrop = agents[farmNo].newCrop
     
     annualInterestYear = 0.6
 
